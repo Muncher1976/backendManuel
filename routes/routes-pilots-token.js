@@ -1,0 +1,171 @@
+// rutas-docentes-token.js
+const express = require("express");
+const router = express.Router();
+const bcrypt = require("bcryptjs"); // Importación de librería
+const jwt = require("jsonwebtoken");
+
+const Pilot = require("../models/model-pilot");
+const checkAuth = require("../middleware/check-auth"); // (1) Importamos middleware de autorización
+// * Creating a new Pilot
+router.post("/", async (req, res, next) => {
+  const {callSign, rank, platForm, email, password, messages, admin} = req.body;
+  let existPilot;
+  try {
+    existPilot = await Pilot.findOne({
+      email: email,
+    });
+  } catch (err) {
+    const error = new Error(err);
+    error.code = 500;
+    return next(error);
+  }
+  if (existPilot) {
+    const error = new Error("There's already a crew member with that e-mail.");
+    error.code = 401; // ! 401: Authentication Failure 
+    return next(error);
+    // ! ATENCIÓN: FIJARSE EN DONDE EMPIEZA Y TERMINA ESTE ELSE
+  } else {
+    // ? Encriptación de password mediante bcrypt y salt
+    let hashedPassword;
+    try {
+      hashedPassword = await bcrypt.hash(password, 12); // ? Método que produce la encriptación
+    } catch (error) {
+      const err = new Error(
+        "It's been impossible to recruit you. Try it again"
+      );
+      err.code = 500;
+      console.log(error.message);
+      return next(err);
+    }
+    const newPilot = new Pilot({
+      callSign, 
+      rank, 
+      platForm, 
+      email,
+      password: hashedPassword, // ? La nueva password será la encriptada
+      messages: [],
+      admin: false,
+    });
+    try {
+      await newPilot.save();
+    } catch (error) {
+      const err = new Error("It's been impossible to save the data");
+      err.code = 500;
+      return next(err);  
+    }
+    res.status(201).json({
+      userId: newPilot.id,
+      email: newPilot.email,
+      
+    });
+  }
+});
+router.post("/login", async (req, res, next) => {
+  const { email, password } = req.body;
+  let pilotExist;
+  try {
+    pilotExist = await Pilot.findOne({
+      // ? (1) Comprobación de email
+      email: email,
+    });
+  } catch (error) {
+    const err = new Error(
+      "It's been impossible to recruit you. Try it again"
+    );
+    err.code = 500;
+    return next(err);
+  }
+  // ? ¿Qué pasa si el docente no existe?
+  if (!pilotExist) {
+    const error = new Error(
+      "Wrong Credentials 2"
+    );
+    error.code = 422; // ! 422:User's data is not valid
+    return next(error);
+  }
+  // ? Si existe el docente, ahora toca comprobar las contraseñas.
+  let esValidoElPassword = false;
+  esValidoElPassword = bcrypt.compareSync(password, pilotExist.password);
+  if (!esValidoElPassword) {
+    const error = new Error(
+      "Wrong Credentials 3"
+    );
+    error.code = 401; // !401: Authentication Failure 
+    return next(error);
+  }
+  // ? Docente con los credeciales correctos.
+  // ? Creamos ahora el token
+  // ! CREACIÓN DEL TOKEN
+  let token;
+  try {
+    token = jwt.sign(
+      {
+        userId: pilotExist.id,
+        email: pilotExist.email,
+      },
+      "clave_supermegasecreta",
+      {
+        expiresIn: "1h",
+      }
+    );
+  } catch (error) {
+    const err = new Error("The procces has failed");
+    err.code = 500;
+    return next(err);
+  }
+  res.status(201).json({
+    message: "The crew member has succefully logged in",
+    userId: pilotExist.id,
+    email: pilotExist.email,
+    token: token,
+  });
+});
+// ! Middleware para autorización
+router.use(checkAuth)
+//* Modifiy crew member's data - Most effective method (findByIdAndUpadate)
+router.patch("/:id", async (req, res, next) => {
+  const idPilot = req.params.id;
+  const changingField= req.body;
+  let pilotSearch;
+  try {
+    pilotSearch = await Pilot.findByIdAndUpdate(
+      idPilot,
+      changingField,
+      {
+        new: true,
+        runValidators: true,
+      }
+    ); // (1) Localizamos y actualizamos a la vez el docente en la BDD
+  } catch (error) {
+    res.status(404).json({
+      mensaje: "It's been impossible to update the data",
+      error: error.message,
+    });
+  }
+  res.status(200).json({
+    mensaje: "Crew member's data has been updated",
+    pilot: pilotSearch,
+  });
+});
+
+// * Eliminar un docente
+router.delete("/:id", async (req, res, next) => {
+  let pilot;
+  try {
+    pilot = await Pilot.findByIdAndDelete(req.params.id);
+  } catch (err) {
+    const error = new Error(
+      "There's been an error. It's been impossible to delete the data"
+    );
+    error.code = 500;
+    return next(error);
+  }
+  res.json({
+    mensaje: "Crew member deleted",
+    pilot: pilot,
+  });
+});
+
+
+
+module.exports = router;
