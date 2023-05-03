@@ -88,7 +88,7 @@ router.post("/", async (req, res, next) => {
   console.log(pilotSearching);
   try {
     await nuevoWall.save(); // ? (1)
-    pilotSearching.walls.push(nuevoWall); // ? (2)
+    pilotSearching.wall.push(nuevoWall); // ? (2)
     await pilotSearching.save(); // ? (3)
   } catch (error) {
     const err = new Error("Ha fallado la creación del nuevo curso");
@@ -103,7 +103,7 @@ router.post("/", async (req, res, next) => {
 // * Modificar un curso en base a su id ( y su referencia en docentes)
 router.patch("/:id", async (req, res, next) => {
   const idWall = req.params.id;
-  let cursoBuscar;
+  let wallSearching;
   try {
     wallSearching = await Wall.findById(idWall).populate("Pilot"); // (1) Localizamos el curso en la BDD
   } catch (error) {
