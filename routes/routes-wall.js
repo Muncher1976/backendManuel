@@ -56,7 +56,7 @@ router.use(checkAuth)
 router.post("/", async (req, res, next) => {
   // ? Primero creamos el curso y lo guardamos en Atlas
   const { message, pilot } = req.body;
-  const nuevoCurso = new Curso({
+  const newWall = new Wall({
     // Nuevo documento basado en el Model Curso.
     message: message,
     pilot: pilot,
