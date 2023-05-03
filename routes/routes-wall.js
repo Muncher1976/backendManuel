@@ -56,7 +56,7 @@ router.use(checkAuth)
 router.post("/", async (req, res, next) => {
   // ? Primero creamos el curso y lo guardamos en Atlas
   const { message, pilot, } = req.body;
-  const nuevoWall = new Curso({
+  const nuevoWall = new Wall({
     // Nuevo documento basado en el Model Curso.
     message: message,
     pilot: pilot,
@@ -100,8 +100,55 @@ router.post("/", async (req, res, next) => {
     wall: nuevoWall,
   });
 });
-  
-
+// * Modificar un curso en base a su id ( y su referencia en docentes)
+router.patch("/:id", async (req, res, next) => {
+  const idWall = req.params.id;
+  let cursoBuscar;
+  try {
+    wallSearching = await Wall.findById(idWall).populate("Pilot"); // (1) Localizamos el curso en la BDD
+  } catch (error) {
+    const err = new Error(
+      "Ha habido algún problema. No se ha podido actualizar la información del curso"
+    );
+    err.code = 500;
+    throw err;
+  }
+  // // ! Verificación de usuario
+  if (wallSearching.pilot.id.toString() !== req.userData.userId) {
+    // Verifica que el creador en la BDD sea el mismo que viene en el req. (headers)
+    const err = new Error("No tiene permiso para modificar este curso");
+    err.code = 401; // Error de autorización
+    return next(err);
+  }
+  // ? Si existe el curso y el usuario se ha verificado
+  try {
+    wallSearching = await Wall.findById(idWall).populate("Pilot");
+    // ? Bloque si queremos modificar el docente que imparte el curso
+    if (req.body.pilot) {
+      wallSearching.pilot.walls.pull(wallSearching); // * Elimina el curso del docente al que se le va a quitar
+      await wallSearching.pilot.save(); // * Guarda dicho docente
+      wallSearching = await Pilot.findById(req.body.pilot); // * Localiza el docente a quien se le va a reasignar el curso
+      pilotSearching.walls.push(wallSearching); // * Añade al array de cursos del docente el curso que se le quitó al otro docente
+      pilotSearching.save(); // * Guardar el docente con el nuevo curso en su array de cursos
+    }
+    // ? Si queremos modificar cualquier propiedad del curso, menos el docente.
+    wallSearching = await Wall.findByIdAndUpdate(idWall, req.body, {
+      new: true,
+      runValidators: true,
+    }).populate("Pilot");
+  } catch (err) {
+    console.log(err.message);
+    const error = new Error(
+      "Ha habido algún error. No se han podido modificar los datos"
+    );
+    error.code = 500;
+    return next(error);
+  }
+  res.json({
+    message: "Curso modificado",
+    wall: wallSearching,
+  });
+});
 
 // * Eliminar un curso en base a su id (y el docente relacionado)
 router.delete("/:id", async (req, res, next) => {
