@@ -13,11 +13,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const routesWall = require("./routes/routes-wall");
-app.use("/api/76sqn/wall", routesWall);
-
 const routesPilots = require("./routes/routes-pilots-token");
-app.use("/api/76sqn/jetfighters", routesPilots);
+app.use("/api/76sqn/crew", routesPilots);
 
 const rutasAdmins = require("./routes/rutas-admins")
 app.use("/api/76sqn/master", rutasAdmins);

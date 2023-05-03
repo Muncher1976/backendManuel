@@ -5,7 +5,6 @@ const bcrypt = require("bcryptjs"); // Importación de librería
 const jwt = require("jsonwebtoken");
 
 const Pilot = require("../models/model-pilot");
-const checkAuth = require("../middleware/check-auth"); // (1) Importamos middleware de autorización
 
 //* Pilot Login
 router.post("/login", async (req, res, next) => {
@@ -88,51 +87,6 @@ router.post("/login", async (req, res, next) => {
     });
   });
   
-  // ! Middleware para autorización
-  router.use(checkAuth)
-  
-  // * Listar todos los docentes
-  router.get("/", async (req, res, next) => {
-    let pilots;
-    
-    try {
-      pilots = await Pilot.find({},"-password")
-    } catch (err) {
-      const error = new Error("Ha ocurrido un error en la recuperación de datos");
-      error.code = 500;
-      return next(error);
-    }
-     
-    res.status(200).json({
-      mensaje: "The whole Crew",
-      pilots: pilots,
-    });
-  });
-  // * Listar un docente en concreto
-  router.get("/:id", async (req, res, next) => {
-    const idPilot = req.params.id;
-    let pilot;
-    try {
-      pilot = await Pilot.findById(idPilot);
-    } catch (err) {
-      const error = new Error(
-        "Ha habido algún error. No se han podido recuperar los datos"
-      );
-      error.code = 500;
-      return next(error);
-    }
-      
-    if (!pilot) {
-      const error = new Error(
-        "No se ha podido encontrar un docente con el id proporcionado"
-      );
-      error.code = 404;
-      return next(error);
-    }
-    res.json({
-      mensaje: "Docente encontrado",
-      pilot: pilot,
-    });
-  });
+
 
   module.exports = router;

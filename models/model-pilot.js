@@ -30,18 +30,12 @@ const pilotSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
-   messages: [
+   messages: 
     {
-      type: mongoose.Types.ObjectId,
+      type: String,
       required: true,
-      ref: "wall",
+      trim : true,
     },
-  ],
-  admin: {
-    type: Boolean,
-    required: true,
-    default: false,
-   },
 });
 
 pilotSchema.plugin(uniqueValidator);

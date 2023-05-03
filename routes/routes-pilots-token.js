@@ -6,6 +6,48 @@ const jwt = require("jsonwebtoken");
 
 const Pilot = require("../models/model-pilot");
 const checkAuth = require("../middleware/check-auth"); // (1) Importamos middleware de autorización
+router.get("/", async (req, res, next) => {
+  let pilots;
+  
+  try {
+    pilots = await Pilot.find({},"-password")
+  } catch (err) {
+    const error = new Error("Ha ocurrido un error en la recuperación de datos");
+    error.code = 500;
+    return next(error);
+  }
+   
+  res.status(200).json({
+    SQN: "The whole Crew",
+    pilots: pilots,
+  });
+});
+// * Listar un docente en concreto
+router.get("/:id", async (req, res, next) => {
+  const idPilot = req.params.id;
+  let pilot;
+  try {
+    pilot = await Pilot.findById(idPilot);
+  } catch (err) {
+    const error = new Error(
+      "Error. Impossible to retrieve the data"
+    );
+    error.code = 500;
+    return next(error);
+  }
+    
+  if (!pilot) {
+    const error = new Error(
+      "No se ha podido encontrar un docente con el id proporcionado"
+    );
+    error.code = 404;
+    return next(error);
+  }
+  res.json({
+    SQN: "Crew member",
+    pilot: pilot,
+  });
+});
 // * Creating a new Pilot
 router.post("/", async (req, res, next) => {
   const {callSign, rank, platForm, email, password, messages, admin} = req.body;
