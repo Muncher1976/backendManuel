@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs"); // Importación de librería
 const jwt = require("jsonwebtoken");
 
 const Pilot = require("../models/model-pilot");
-const checkAuth = require("../middleware/check-auth"); // (1) Importamos middleware de autorización
+
 router.get("/", async (req, res, next) => {
   let pilots;
   
@@ -50,7 +50,7 @@ router.get("/:id", async (req, res, next) => {
 });
 // * Creating a new Pilot
 router.post("/", async (req, res, next) => {
-  const {callSign, rank, platForm, email, password, messages, admin} = req.body;
+  const {callSign, rank, platForm, email, password, messages, } = req.body;
   let existPilot;
   try {
     existPilot = await Pilot.findOne({
@@ -85,8 +85,7 @@ router.post("/", async (req, res, next) => {
       platForm, 
       email,
       password: hashedPassword, // ? La nueva password será la encriptada
-      messages: [],
-      admin: false,
+      messages,
     });
     try {
       await newPilot.save();
@@ -162,8 +161,7 @@ router.post("/login", async (req, res, next) => {
     token: token,
   });
 });
-// ! Middleware para autorización
-router.use(checkAuth)
+
 //* Modifiy crew member's data - Most effective method (findByIdAndUpadate)
 router.patch("/:id", async (req, res, next) => {
   const idPilot = req.params.id;
