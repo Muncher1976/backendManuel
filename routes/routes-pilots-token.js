@@ -50,7 +50,7 @@ router.get("/:id", async (req, res, next) => {
 });
 // * Creating a new Pilot
 router.post("/", async (req, res, next) => {
-  const {callSign, rank, platForm, email, password, messages, } = req.body;
+  const { callSign, rank, platForm, email, password, messages, } = req.body;
   let existPilot;
   try {
     existPilot = await Pilot.findOne({
@@ -62,8 +62,8 @@ router.post("/", async (req, res, next) => {
     return next(error);
   }
   if (existPilot) {
-    const error = new Error("There's already a crew member with that e-mail.");
-    error.code = 401; // ! 401: Authentication Failure 
+    const error = new Error("There's already a crew member with taht  e-mail.");
+    error.code = 401; // ! 401: Authentication Failure
     return next(error);
     // ! ATENCIÓN: FIJARSE EN DONDE EMPIEZA Y TERMINA ESTE ELSE
   } else {
@@ -73,13 +73,14 @@ router.post("/", async (req, res, next) => {
       hashedPassword = await bcrypt.hash(password, 12); // ? Método que produce la encriptación
     } catch (error) {
       const err = new Error(
-        "It's been impossible to recruit you. Try it again"
+        "It's been impossible to recruit you. Try again"
       );
       err.code = 500;
       console.log(error.message);
       return next(err);
     }
-    const newPilot = new Pilot({
+
+    const newyPilot = new Pilot({
       callSign, 
       rank, 
       platForm, 
@@ -87,17 +88,35 @@ router.post("/", async (req, res, next) => {
       password: hashedPassword, // ? La nueva password será la encriptada
       messages,
     });
+
     try {
-      await newPilot.save();
+      await newyPilot.save();
     } catch (error) {
       const err = new Error("It's been impossible to save the data");
       err.code = 500;
-      return next(err);  
+      return next(err);
+    }
+    // ? Código para la creación del token
+    try {
+      token = jwt.sign(
+        {
+          userId: newyPilot.id,
+          email: newyPilot.email,
+        },
+        "clave_supermegasecreta",
+        {
+          expiresIn: "1h",
+        }
+      );
+    } catch (error) {
+      const err = new Error("It's been impossible to go ahead");
+      err.code = 500;
+      return next(err);
     }
     res.status(201).json({
-      userId: newPilot.id,
-      email: newPilot.email,
-      
+      userId: newyPilot.id,
+      email: newyPilot.email,
+      token: token,
     });
   }
 });
